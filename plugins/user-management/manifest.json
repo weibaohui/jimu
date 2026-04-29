@@ -1,0 +1,71 @@
+{
+  "name": "user-management",
+  "version": "1.0.0",
+  "description": "用户管理插件",
+  "author": "Your Name",
+  "min_host_version": "0.1.0",
+
+  "backend": {
+    "main": "backend/plugin.so",
+    "permissions": [
+      "db:read",
+      "db:write"
+    ]
+  },
+
+  "frontend": {
+    "entry": "frontend/assets/main.js",
+    "style": "frontend/assets/main.css",
+    "chunks": [],
+    "assets": []
+  },
+
+  "menu": {
+    "title": "用户管理",
+    "icon": "UserOutlined",
+    "path": "/user-management",
+    "order": 1,
+    "children": [
+      {
+        "title": "用户列表",
+        "path": "/user-management/list",
+        "icon": "UnorderedListOutlined"
+      }
+    ]
+  },
+
+  "api": {
+    "prefix": "/api/plugins/user-management",
+    "routes": [
+      {
+        "path": "/users",
+        "method": "GET",
+        "handler": "list_users"
+      },
+      {
+        "path": "/users",
+        "method": "POST",
+        "handler": "create_user"
+      },
+      {
+        "path": "/users/:id",
+        "method": "PUT",
+        "handler": "update_user"
+      },
+      {
+        "path": "/users/:id",
+        "method": "DELETE",
+        "handler": "delete_user"
+      }
+    ]
+  },
+
+  "permissions": {
+    "database": {
+      "tables": ["users", "roles"]
+    },
+    "api": {
+      "external_urls": []
+    }
+  }
+}
