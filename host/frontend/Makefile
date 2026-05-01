@@ -3,6 +3,8 @@ BACKEND_DIR := $(shell cd .. && pwd)/backend
 FRONTEND_DIR := $(shell pwd)
 BACKEND_PID := $(PID_DIR)/server.pid
 FRONTEND_PID := $(PID_DIR)/frontend.pid
+BACKEND_PORT := 3000
+FRONTEND_PORT := 5188
 
 # ── 安装依赖 ──────────────────────────────────────
 
@@ -19,13 +21,11 @@ setup:
 dev: stop
 	@mkdir -p $(PID_DIR)
 	@echo "=== 启动后端 (Rust) ==="
-	cd $(BACKEND_DIR) && nohup cargo run > /tmp/jimu-server.log 2>&1 &
-	@echo $$! > $(BACKEND_PID)
-	@echo "后端 PID: $$(cat $(BACKEND_PID))"
+	@cd $(BACKEND_DIR) && nohup cargo run > /tmp/jimu-server.log 2>&1 & echo "$$!" > $(BACKEND_PID)
+	@echo "后端 PID: $$(cat $(BACKEND_PID) 2>/dev/null || echo '获取失败')"
 	@echo "=== 启动前端 (Vite) ==="
-	cd $(FRONTEND_DIR) && nohup npm run dev -- --port 5188 > /tmp/jimu-frontend.log 2>&1 &
-	@echo $$! > $(FRONTEND_PID)
-	@echo "前端 PID: $$(cat $(FRONTEND_PID))"
+	@cd $(FRONTEND_DIR) && nohup npm run dev -- --port 5188 > /tmp/jimu-frontend.log 2>&1 & echo "$$!" > $(FRONTEND_PID)
+	@echo "前端 PID: $$(cat $(FRONTEND_PID) 2>/dev/null || echo '获取失败')"
 	@echo "=== 启动完成 ==="
 	@echo "后端日志: tail -f /tmp/jimu-server.log"
 	@echo "前端日志: tail -f /tmp/jimu-frontend.log"
@@ -35,19 +35,25 @@ dev: stop
 .PHONY: stop
 stop:
 	@echo "=== 停止后端 ==="
-	@if [ -f $(BACKEND_PID) ]; then \
-		kill "$$(cat $(BACKEND_PID))" 2>/dev/null && echo "后端已停止" || echo "后端进程不存在"; \
-		rm -f $(BACKEND_PID); \
+	@PID=$$(lsof -ti:$(BACKEND_PORT) 2>/dev/null); \
+	if [ -n "$$PID" ]; then \
+		kill $$PID 2>/dev/null && echo "后端已停止 (PID: $$PID)" || echo "后端进程无法停止"; \
+	elif [ -f $(BACKEND_PID) ]; then \
+		kill "$$(cat $(BACKEND_PID))" 2>/dev/null && echo "后端已停止 (PID: $$(cat $(BACKEND_PID)))" || echo "后端进程不存在"; \
 	else \
-		echo "后端 PID 文件不存在"; \
+		echo "后端未运行"; \
 	fi
+	@rm -f $(BACKEND_PID)
 	@echo "=== 停止前端 ==="
-	@if [ -f $(FRONTEND_PID) ]; then \
-		kill "$$(cat $(FRONTEND_PID))" 2>/dev/null && echo "前端已停止" || echo "前端进程不存在"; \
-		rm -f $(FRONTEND_PID); \
+	@PID=$$(lsof -ti:$(FRONTEND_PORT) 2>/dev/null | xargs -I {} sh -c 'ps -p {} -o comm= 2>/dev/null | grep -q node && echo {}' 2>/dev/null | head -1); \
+	if [ -n "$$PID" ]; then \
+		kill $$PID 2>/dev/null && echo "前端已停止 (PID: $$PID)" || echo "前端进程无法停止"; \
+	elif [ -f $(FRONTEND_PID) ]; then \
+		kill "$$(cat $(FRONTEND_PID))" 2>/dev/null && echo "前端已停止 (PID: $$(cat $(FRONTEND_PID)))" || echo "前端进程不存在"; \
 	else \
-		echo "前端 PID 文件不存在"; \
+		echo "前端未运行"; \
 	fi
+	@rm -f $(FRONTEND_PID)
 	@echo "=== 全部停止 ==="
 
 # ── 仅后端 ────────────────────────────────────────
