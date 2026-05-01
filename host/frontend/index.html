@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>宿主系统</title>
+    <!-- process 全局 polyfill：插件 JS 中可能包含 process.env 引用（如 react-jsx-runtime.development.js） -->
+    <script>window.process = { env: { NODE_ENV: 'production' } }</script>
+    <!-- Import Map：让插件 JS 中的 bare import 能正确解析为 Vite 预构建的本地 dep -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "/_vendor/react.js",
+        "antd": "/_vendor/antd.js"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

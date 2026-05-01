@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
   createElement,
 } from 'react'
@@ -59,7 +60,13 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  const menusLoadedRef = useRef(false)
+
   useEffect(() => {
+    // React 18 Strict Mode 会触发两次 mount，用 ref 防止重复加载
+    if (menusLoadedRef.current) return
+    menusLoadedRef.current = true
+
     // 从后端加载已安装插件的菜单
     loadPluginMenus()
   }, [])
@@ -72,12 +79,23 @@ export function MenuProvider({ children }: { children: ReactNode }) {
       if (data.menus && Array.isArray(data.menus)) {
         data.menus.forEach((pluginMenu: any) => {
           if (pluginMenu) {
-            addMenuItem(pluginMenu)
+            // 后端返回的是 {path, title} 格式，需转换为前端 MenuItem 的 {key, label} 格式
+            addMenuItem(transformBackendMenu(pluginMenu))
           }
         })
       }
     } catch (error) {
       console.error('Failed to load plugin menus:', error)
+    }
+  }
+
+  /** 将后端菜单格式 (path/title) 转换为前端 MenuItem 格式 (key/label) */
+  function transformBackendMenu(menu: any): MenuItem {
+    return {
+      key: menu.path || menu.key,
+      label: menu.title || menu.label,
+      icon: menu.icon,
+      children: menu.children?.map(transformBackendMenu),
     }
   }
 

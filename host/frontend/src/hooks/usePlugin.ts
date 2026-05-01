@@ -11,10 +11,11 @@ export function usePlugin(pluginName: string) {
         setLoading(true)
         setError(null)
 
-        // 动态导入插件的 JS 文件
+        // 去除 pluginName 可能带的前导斜杠
+        const pluginPath = pluginName.replace(/^\//, '')
         const module = await import(
           /* @vite-ignore */
-          `/plugins/${pluginName}/frontend/assets/main.js`
+          `/plugins/${pluginPath}/frontend/assets/main.js`
         )
 
         // 获取插件导出的默认组件
