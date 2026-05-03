@@ -3,6 +3,7 @@
 use super::traits::*;
 use libloading::{Library, Symbol};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock};
 use anyhow::{Context, Result};
 use flate2::read::GzDecoder;
 use tar::Archive;
@@ -32,7 +33,7 @@ pub struct LoadedPlugin {
     pub plugin: Box<dyn Plugin>,
     pub manifest: PluginManifest,
     pub plugin_dir: PathBuf,
-    pub state: PluginState,
+    pub state: Arc<RwLock<PluginState>>,
 }
 
 /// 插件清单
@@ -134,7 +135,7 @@ impl PluginLoader {
             plugin,
             manifest,
             plugin_dir,
-            state: PluginState::Enabled,
+            state: Arc::new(RwLock::new(PluginState::Enabled)),
         };
 
         log::info!("插件 '{}' (v{}) 加载成功", loaded.name, loaded.manifest.version);
@@ -174,7 +175,7 @@ impl PluginLoader {
             plugin,
             manifest,
             plugin_dir,
-            state: PluginState::Enabled,
+            state: Arc::new(RwLock::new(PluginState::Enabled)),
         };
 
         log::info!("插件 '{}' (v{}) 加载成功", loaded.name, loaded.manifest.version);

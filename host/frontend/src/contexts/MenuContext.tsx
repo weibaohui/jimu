@@ -73,7 +73,7 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 
   const loadPluginMenus = async () => {
     try {
-      const response = await fetch('/api/plugins/menus')
+      const response = await fetch('http://localhost:3000/api/plugins/menus')
       const data = await response.json()
 
       if (data.menus && Array.isArray(data.menus)) {

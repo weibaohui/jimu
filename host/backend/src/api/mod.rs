@@ -267,8 +267,7 @@ async fn start_plugin(
     State(state): State<AppState>,
     Path(name): Path<String>,
 ) -> Json<serde_json::Value> {
-    // 当前实现：插件加载即运行
-    match state.plugin_manager.enable_plugin(&name).await {
+    match state.plugin_manager.start_plugin(&name).await {
         Ok(_) => Json(serde_json::json!({
             "success": true,
             "message": format!("Plugin {} started", name),
@@ -285,7 +284,7 @@ async fn stop_plugin(
     State(state): State<AppState>,
     Path(name): Path<String>,
 ) -> Json<serde_json::Value> {
-    match state.plugin_manager.disable_plugin(&name).await {
+    match state.plugin_manager.stop_plugin(&name).await {
         Ok(_) => Json(serde_json::json!({
             "success": true,
             "message": format!("Plugin {} stopped", name),

@@ -122,14 +122,16 @@ impl PluginManager {
         };
 
         if let Some(loaded) = loaded {
-            if loaded.state == PluginState::Disabled {
+            let current_state = loaded.state.read().unwrap().clone();
+            if current_state == PluginState::Disabled {
                 let ctx = self.loader.context.clone();
                 loaded.plugin.on_load(&ctx).await
                     .map_err(|e| anyhow::anyhow!("插件启用失败: {}", e))?;
+                *loaded.state.write().unwrap() = PluginState::Enabled;
                 log::info!("插件 '{}' 已启用", name);
                 Ok(())
             } else {
-                log::warn!("插件 '{}' 当前状态 {:?}，无法启用", name, loaded.state);
+                log::warn!("插件 '{}' 当前状态 {:?}，无法启用", name, current_state);
                 Ok(())
             }
         } else {
@@ -145,13 +147,59 @@ impl PluginManager {
         };
 
         if let Some(loaded) = loaded {
-            if loaded.state == PluginState::Enabled || loaded.state == PluginState::Running {
+            let current_state = loaded.state.read().unwrap().clone();
+            if current_state == PluginState::Enabled || current_state == PluginState::Running {
                 loaded.plugin.on_unload().await
                     .map_err(|e| anyhow::anyhow!("插件禁用失败: {}", e))?;
+                *loaded.state.write().unwrap() = PluginState::Disabled;
                 log::info!("插件 '{}' 已禁用", name);
                 Ok(())
             } else {
-                log::warn!("插件 '{}' 当前状态 {:?}，无法禁用", name, loaded.state);
+                log::warn!("插件 '{}' 当前状态 {:?}，无法禁用", name, current_state);
+                Ok(())
+            }
+        } else {
+            anyhow::bail!("插件 '{}' 未找到", name);
+        }
+    }
+
+    /// 启动插件（设置为 Running 状态）
+    pub async fn start_plugin(&self, name: &str) -> Result<()> {
+        let loaded = {
+            let plugins = self.plugins.read().unwrap();
+            plugins.get(name).cloned()
+        };
+
+        if let Some(loaded) = loaded {
+            let current_state = loaded.state.read().unwrap().clone();
+            if current_state == PluginState::Enabled || current_state == PluginState::Stopped {
+                *loaded.state.write().unwrap() = PluginState::Running;
+                log::info!("插件 '{}' 已启动", name);
+                Ok(())
+            } else {
+                log::warn!("插件 '{}' 当前状态 {:?}，无法启动", name, current_state);
+                Ok(())
+            }
+        } else {
+            anyhow::bail!("插件 '{}' 未找到", name);
+        }
+    }
+
+    /// 停止插件（设置为 Stopped 状态）
+    pub async fn stop_plugin(&self, name: &str) -> Result<()> {
+        let loaded = {
+            let plugins = self.plugins.read().unwrap();
+            plugins.get(name).cloned()
+        };
+
+        if let Some(loaded) = loaded {
+            let current_state = loaded.state.read().unwrap().clone();
+            if current_state == PluginState::Running {
+                *loaded.state.write().unwrap() = PluginState::Stopped;
+                log::info!("插件 '{}' 已停止", name);
+                Ok(())
+            } else {
+                log::warn!("插件 '{}' 当前状态 {:?}，无法停止", name, current_state);
                 Ok(())
             }
         } else {
@@ -283,7 +331,7 @@ impl PluginManager {
             version: loaded.manifest.version.clone(),
             description: loaded.manifest.description.clone(),
             author: loaded.manifest.author.clone(),
-            state: loaded.state.clone(),
+            state: loaded.state.read().unwrap().clone(),
         }).collect()
     }
 
@@ -307,7 +355,7 @@ impl PluginManager {
                 version: loaded.manifest.version.clone(),
                 description: loaded.manifest.description.clone(),
                 author: loaded.manifest.author.clone(),
-                state: loaded.state.clone(),
+                state: loaded.state.read().unwrap().clone(),
                 routes: route_paths,
                 permissions: loaded.manifest.backend.permissions.clone(),
             }
