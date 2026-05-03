@@ -37,6 +37,7 @@ build/
 # IDE
 .idea/
 .vscode/
+.atomcode/
 *.swp
 *.swo
 *~
