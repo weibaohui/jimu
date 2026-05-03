@@ -1,4 +1,4 @@
-import {
+import React, {
   createContext,
   useContext,
   useState,
@@ -12,7 +12,7 @@ import * as antdIcons from '@ant-design/icons'
 
 export interface MenuItem {
   key: string
-  icon?: string
+  icon?: string | React.ReactNode
   label: string
   children?: MenuItem[]
   path?: string
@@ -77,26 +77,55 @@ export function MenuProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (data.menus && Array.isArray(data.menus)) {
+        // 扁平化处理所有菜单项
+        const allItems: MenuItem[] = []
         data.menus.forEach((pluginMenu: any) => {
           if (pluginMenu) {
-            // 后端返回的是 {path, title} 格式，需转换为前端 MenuItem 的 {key, label} 格式
-            addMenuItem(transformBackendMenu(pluginMenu))
+            // 添加父菜单
+            allItems.push(transformBackendMenu(pluginMenu))
+            // 添加子菜单
+            if (pluginMenu.children && Array.isArray(pluginMenu.children)) {
+              pluginMenu.children.forEach((child: any) => {
+                allItems.push(transformBackendMenu(child))
+              })
+            }
           }
         })
+        allItems.forEach(item => addMenuItem(item))
       }
     } catch (error) {
       console.error('Failed to load plugin menus:', error)
     }
   }
 
-  /** 将后端菜单格式 (path/title) 转换为前端 MenuItem 格式 (key/label) */
+  /** 将后端菜单格式 (path/title/icon) 转换为前端 MenuItem 格式 */
   function transformBackendMenu(menu: any): MenuItem {
+    const iconName = menu.icon
+    const iconComponent = iconName ? getIconComponent(iconName) : undefined
+
     return {
       key: menu.path || menu.key,
       label: menu.title || menu.label,
-      icon: menu.icon,
-      children: menu.children?.map(transformBackendMenu),
+      icon: iconComponent,
     }
+  }
+
+  /** 根据图标名称获取 antd 图标组件 */
+  function getIconComponent(iconName: string): React.ReactElement | null {
+    const iconMap: Record<string, React.ComponentType<any>> = {
+      UserOutlined: antdIcons.UserOutlined,
+      DashboardOutlined: antdIcons.DashboardOutlined,
+      AppstoreOutlined: antdIcons.AppstoreOutlined,
+      UnorderedListOutlined: antdIcons.UnorderedListOutlined,
+    }
+
+    const IconComponent = iconMap[iconName]
+    if (!IconComponent) {
+      console.warn(`Icon not found: ${iconName}`)
+      return null
+    }
+
+    return createElement(IconComponent)
   }
 
   return (
@@ -119,9 +148,16 @@ export function useMenu() {
 type MenuItemType = NonNullable<MenuProps['items']>[number]
 
 function convertMenuItem(item: MenuItem): MenuItemType {
-  const iconComponent = item.icon
-    ? createElement((antdIcons as any)[item.icon])
-    : undefined
+  // If icon is already a ReactNode (from transformBackendMenu), use it directly
+  // Otherwise treat it as a string and look it up
+  let iconComponent: React.ReactNode = undefined
+  if (item.icon) {
+    if (typeof item.icon === 'string') {
+      iconComponent = createElement((antdIcons as any)[item.icon])
+    } else {
+      iconComponent = item.icon
+    }
+  }
 
   const menuItem: MenuItemType = {
     key: item.key,

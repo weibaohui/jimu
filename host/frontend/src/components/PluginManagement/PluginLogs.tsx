@@ -59,7 +59,9 @@ export function PluginLogs({ pluginName, logs, loading, onRefresh }: PluginLogsP
   }
 
   const formatLogEntry = (log: PluginLog) => {
-    const config = logLevelConfig[log.level]
+    // Handle both lowercase (frontend) and capitalized (backend) log levels
+    const normalizedLevel = log.level.toLowerCase() as keyof typeof logLevelConfig
+    const config = logLevelConfig[normalizedLevel] || logLevelConfig.info
 
     return (
       <List.Item key={log.id}>

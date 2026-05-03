@@ -100,6 +100,12 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5188,
     historyApiFallback: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
     fs: {
       allow: [
         path.resolve(__dirname), // 当前 frontend 目录（包含 index.html 等）

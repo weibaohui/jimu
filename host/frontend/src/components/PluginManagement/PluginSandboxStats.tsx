@@ -148,7 +148,7 @@ export function PluginSandboxStats({
         </Button>
       </Space>
 
-      {stats.violations.length > 0 && (
+      {stats.violations && stats.violations.length > 0 && (
         <Alert
           message="检测到沙盒违规"
           description={`共 ${stats.violations.length} 次违规记录`}
@@ -203,7 +203,7 @@ export function PluginSandboxStats({
       </Row>
 
       <Card title="违规记录" style={{ marginTop: 16 }}>
-        {stats.violations.length === 0 ? (
+        {!stats.violations || stats.violations.length === 0 ? (
           <Empty description="暂无违规记录" />
         ) : (
           <List
