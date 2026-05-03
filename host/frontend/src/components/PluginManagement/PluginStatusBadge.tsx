@@ -19,5 +19,8 @@ const statusConfig: Record<PluginStatus, { color: string; text: string }> = {
 
 export function PluginStatusBadge({ status }: PluginStatusBadgeProps) {
   const config = statusConfig[status]
+  if (!config) {
+    return <Tag color="default">{String(status || 'unknown')}</Tag>
+  }
   return <Tag color={config.color}>{config.text}</Tag>
 }

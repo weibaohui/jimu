@@ -66,14 +66,15 @@ export function PluginUploadModal({ visible, onCancel, onSuccess }: PluginUpload
 
   const uploadProps: UploadProps = {
     beforeUpload: (file) => {
-      // 只允许上传 .plugin 文件
       const isPlugin = file.name.endsWith('.plugin')
       if (!isPlugin) {
         message.error('只能上传 .plugin 文件')
         return Upload.LIST_IGNORE
       }
-      setFileList([file])
-      return false // 阻止自动上传
+      return false
+    },
+    onChange: ({ fileList: newFileList }) => {
+      setFileList(newFileList)
     },
     onRemove: () => {
       setFileList([])
@@ -106,7 +107,6 @@ export function PluginUploadModal({ visible, onCancel, onSuccess }: PluginUpload
                 <Form.Item
                   name="file"
                   label="选择插件文件"
-                  rules={[{ required: true, message: '请选择插件文件' }]}
                 >
                   <Upload {...uploadProps}>
                     <Button icon={<UploadOutlined />}>选择文件</Button>
