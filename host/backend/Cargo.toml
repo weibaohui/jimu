@@ -8,7 +8,7 @@ edition = "2021"
 jimu-plugin-interface = { path = "../../jimu-plugin-interface" }
 
 # Web 框架
-axum = "0.7"
+axum = { version = "0.7", features = ["multipart"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["fs", "cors"] }

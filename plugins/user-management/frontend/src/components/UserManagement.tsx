@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Table, Button, Modal, Form, Input, Select, message } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 
@@ -11,17 +11,6 @@ interface User {
   updated_at: string
 }
 
-interface CreateUserRequest {
-  name: string
-  email: string
-  role: string
-}
-
-interface UpdateUserRequest {
-  name?: string
-  email?: string
-  role?: string
-}
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([])

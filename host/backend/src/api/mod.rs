@@ -4,7 +4,7 @@ use axum::{
     Router,
     routing::{get, post, delete, any},
     response::{Json, Response},
-    extract::{Path, State},
+    extract::{Path, State, Multipart},
     http::{StatusCode, HeaderMap, Method},
 };
 use std::sync::Arc;
@@ -105,46 +105,69 @@ async fn get_plugin_detail(
     }
 }
 
-/// 上传插件（支持 JSON body）
+/// 上传插件（支持 multipart 文件上传和 JSON body）
 async fn upload_plugin(
     State(state): State<AppState>,
-    Json(body): Json<serde_json::Value>,
-) -> Json<serde_json::Value> {
-    let package_path = if let Some(path) = body.get("path").and_then(|p| p.as_str()) {
-        PathBuf::from(path)
-    } else if let Some(data) = body.get("data").and_then(|d| d.as_str()) {
-        match base64_decode_and_save(data) {
-            Ok(path) => path,
-            Err(e) => {
-                return Json(serde_json::json!({
-                    "success": false,
-                    "message": e.to_string(),
-                }));
-            }
-        }
-    } else {
-        return Json(serde_json::json!({
-            "success": false,
-            "message": "Invalid request: missing 'path' or 'data' field",
-        }));
-    };
+    multipart: Multipart,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let package_path = process_upload(multipart).await.map_err(|e| {
+        (StatusCode::BAD_REQUEST, e)
+    })?;
 
     match state.plugin_manager.load_from_package(&package_path.to_string_lossy()).await {
         Ok(_) => {
             log::info!("插件包加载成功: {:?}", package_path);
-            Json(serde_json::json!({
+            Ok(Json(serde_json::json!({
                 "success": true,
                 "message": "Plugin loaded successfully",
-            }))
+            })))
         }
         Err(e) => {
             log::error!("插件包加载失败: {:?}", e);
-            Json(serde_json::json!({
+            Ok(Json(serde_json::json!({
                 "success": false,
                 "message": e.to_string(),
-            }))
+            })))
         }
     }
+}
+
+/// 处理上传：支持 multipart 文件字段和 JSON 字段（向后兼容）
+async fn process_upload(mut multipart: Multipart) -> Result<PathBuf, String> {
+    let temp_dir = std::env::temp_dir();
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| e.to_string())? {
+        let name = field.name().unwrap_or("").to_string();
+        match name.as_str() {
+            "file" => {
+                // 文件上传 — 保存到临时目录
+                let file_name = field.file_name().unwrap_or("plugin.plugin").to_string();
+                let content = field.bytes().await.map_err(|e| e.to_string())?;
+                let dest = temp_dir.join(&file_name);
+                tokio::fs::write(&dest, &content).await.map_err(|e| e.to_string())?;
+                return Ok(dest);
+            }
+            "path" => {
+                let path_str = field.text().await.map_err(|e| e.to_string())?;
+                let path = PathBuf::from(&path_str);
+                if path.exists() {
+                    return Ok(path);
+                }
+                return Err(format!("路径不存在: {}", path_str));
+            }
+            "data" => {
+                // Base64 数据 — 解码并保存
+                let data = field.text().await.map_err(|e| e.to_string())?;
+                return base64_decode_and_save(&data).map_err(|e| e.to_string());
+            }
+            _ => {
+                // 未知字段，跳过
+                continue;
+            }
+        }
+    }
+
+    Err("Invalid request: missing 'file', 'path', or 'data' field".to_string())
 }
 
 /// 解码 Base64 并保存文件

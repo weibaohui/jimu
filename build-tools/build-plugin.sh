@@ -167,16 +167,19 @@ if [ "$FRONTEND_ONLY" = false ]; then
             ;;
     esac
 
-    # 复制动态库
-    if [ -f "target/release/lib${PLUGIN_NAME}.${LIB_EXT}" ]; then
+    # 查找编译后的动态库（Rust crate 名中的 - 会被转为 _）
+    LIB_FILE=$(find "target/release" -name "lib*.${LIB_EXT}" -type f 2>/dev/null | head -1)
+
+    if [ -n "$LIB_FILE" ] && [ -f "$LIB_FILE" ]; then
         mkdir -p "../$BUILD_DIR/backend"
-        cp "target/release/lib${PLUGIN_NAME}.${LIB_EXT}" "../$BUILD_DIR/backend/plugin.${LIB_EXT}"
-        print_info "后端编译完成: plugin.${LIB_EXT}"
+        cp "$LIB_FILE" "../$BUILD_DIR/backend/plugin.${LIB_EXT}"
+        print_info "后端编译完成: plugin.${LIB_EXT} (from $(basename "$LIB_FILE"))"
     else
         print_error "无法找到编译后的动态库"
         exit 1
     fi
 
+    # 回到插件根目录
     cd ..
 fi
 
@@ -206,24 +209,29 @@ if [ "$BACKEND_ONLY" = false ]; then
     # 构建前端
     npm run build
 
-    # 复制构建产物
-    if [ -d "dist" ]; then
+    # 复制构建产物 — 检查常见输出目录
+    BUILD_OUTPUT_DIR=""
+    for d in "dist" "assets" "build"; do
+        if [ -d "$d" ]; then
+            BUILD_OUTPUT_DIR="$d"
+            break
+        fi
+    done
+
+    if [ -n "$BUILD_OUTPUT_DIR" ]; then
         mkdir -p "../$BUILD_DIR/frontend"
-        cp -r dist/* "../$BUILD_DIR/frontend/"
-        print_info "前端编译完成"
+        cp -r "$BUILD_OUTPUT_DIR"/* "../$BUILD_DIR/frontend/"
+        print_info "前端编译完成 (from $BUILD_OUTPUT_DIR)"
     else
-        print_error "无法找到前端构建产物"
+        print_error "无法找到前端构建产物（dist/assets/build 目录都不存在）"
         exit 1
     fi
 
     cd ..
 fi
 
-# 复制其他文件
-if [ -d "assets" ]; then
-    cp -r assets "$BUILD_DIR/"
-    print_info "复制资源文件"
-fi
+# 复制其他文件（仅复制 assets 中不是前端构建产物的内容）
+# 注意：如果前端 outDir 不是 assets，此处的 assets 复制逻辑需要保留
 
 if [ -f "README.md" ]; then
     cp README.md "$BUILD_DIR/"

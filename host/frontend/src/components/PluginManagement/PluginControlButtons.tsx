@@ -102,25 +102,30 @@ export function PluginControlButtons({
     <Space size="small">
       {availableActions.map((action) => {
         const config = actionConfig[action]
-        const ButtonComponent = config.confirm ? (
-          <Popconfirm
-            key={action}
-            title={config.confirm}
-            onConfirm={() => handleAction(action)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button
-              type="text"
-              size="small"
-              icon={config.icon}
-              danger={config.danger}
-              disabled={loading}
+
+        if (config.confirm) {
+          return (
+            <Popconfirm
+              key={action}
+              title={config.confirm}
+              onConfirm={() => handleAction(action)}
+              okText="确定"
+              cancelText="取消"
             >
-              {config.label}
-            </Button>
-          </Popconfirm>
-        ) : (
+              <Button
+                type="text"
+                size="small"
+                icon={config.icon}
+                danger={config.danger}
+                disabled={loading}
+              >
+                {config.label}
+              </Button>
+            </Popconfirm>
+          )
+        }
+
+        return (
           <Tooltip key={action} title={config.label}>
             <Button
               type="text"
@@ -134,8 +139,6 @@ export function PluginControlButtons({
             </Button>
           </Tooltip>
         )
-
-        return ButtonComponent
       })}
     </Space>
   )
