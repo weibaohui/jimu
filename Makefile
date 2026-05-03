@@ -1,10 +1,21 @@
 # ─────────────────────────────────────────────────────
 #  Jimu 插件编译系统
-#  用法:
+#
+#  环境:
+#    make setup     安装 portless + 前后端依赖（首次运行）
+#
+#  开发:
+#    make dev       启动开发环境（Portless HTTPS）
+#                   前端: https://jimu-app.localhost
+#                   后端: https://jimu-api.localhost
+#
+#  插件构建:
 #    make list                              列出所有已安装插件
 #    make build-plugin NAME=<插件名>        编译指定插件，输出到 dist/
 #    make build-plugin NAME=user-management FRONTEND_ONLY=true   只编译前端
 #    make build-all                         编译全部插件
+#
+#  清理:
 #    make clean                             清理构建产物
 # ─────────────────────────────────────────────────────
 
@@ -77,3 +88,61 @@ clean:
 	@rm -rf $(PLUGINS_DIR)/*/.plugin-build
 	@rm -f $(PLUGINS_DIR)/*.plugin
 	@echo "✅ 已清理"
+
+# ── 环境配置 ──────────────────────────────────────────
+
+.PHONY: setup
+setup:
+	@echo "=== 安装 Portless（本地 HTTPS 开发代理）==="
+	@if command -v portless &> /dev/null; then \
+		echo "✅ portless 已安装"; \
+	else \
+		npm install -g portless; \
+		echo "✅ portless 安装完成"; \
+	fi
+	@echo ""
+	@echo "=== 安装前端依赖 ==="
+	@cd host/frontend && npm install
+	@echo ""
+	@echo "=== 安装后端依赖 ==="
+	@cd host/backend && cargo check
+	@echo ""
+	@echo "✅ 环境就绪。运行 make dev 启动开发服务器"
+
+# ── 开发服务器 ────────────────────────────────────────
+
+.PHONY: dev
+dev:
+	@echo "=== 启动 Jimu 开发环境（Portless）==="
+	@echo ""
+	@echo "  前端: https://jimu-app.localhost"
+	@echo "  后端: https://jimu-api.localhost"
+	@echo ""
+	@echo "按 Ctrl+C 停止"
+	@echo ""
+	@echo "[1/4] 检查 Portless 代理..."
+	@if curl -sf https://jimu-app.localhost/_portless/health > /dev/null 2>&1; then \
+		echo "  ✅ portless 代理已运行"; \
+	else \
+		echo "  🚀 启动 portless 代理..."; \
+		portless proxy start > /tmp/portless-proxy.log 2>&1 & \
+		sleep 3; \
+		if curl -sf https://jimu-app.localhost/_portless/health > /dev/null 2>&1; then \
+			echo "  ✅ portless 代理已启动"; \
+		else \
+			echo "  ⚠️  代理启动中，继续..."; \
+		fi; \
+	fi
+	@echo ""
+	@echo "[2/4] 清理旧进程..."
+	@lsof -ti:3000 2>/dev/null | xargs kill -9 2>/dev/null || true
+	@echo "  ✅ 端口已清理"
+	@echo ""
+	@echo "[3/4] 启动后端 (0.0.0.0:3000)..."
+	@cd host/backend && export DATABASE_URL=sqlite:./host.db && export PLUGINS_DIR=../../plugins && export LOG_LEVEL=info && cargo run &
+	@sleep 4
+	@echo "  ✅ 后端已启动"
+	@echo ""
+	@echo "[4/4] 启动前端 (Vite + Portless)..."
+	@portless alias jimu-api localhost:3000 2>/dev/null || true
+	@cd host/frontend && portless --force jimu-app vite

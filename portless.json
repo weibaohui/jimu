@@ -1,0 +1,8 @@
+{
+  "name": "jimu",
+  "apps": {
+    "host/frontend": {
+      "name": "jimu-app"
+    }
+  }
+}

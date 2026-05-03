@@ -21,21 +21,42 @@ export function PluginUploadModal({ visible, onCancel, onSuccess }: PluginUpload
     try {
       setLoading(true)
 
-      const request: PluginUploadRequest = {
-        [uploadMethod]: values[uploadMethod],
-      }
-
-      const response = await pluginApi.uploadPlugin(request)
-
-      if (response.success) {
-        message.success('插件上传成功')
-        form.resetFields()
-        setFileList([])
-        onCancel()
-        onSuccess()
+      // 确保文件上传模式有文件
+      if (uploadMethod === 'file') {
+        const file = fileList[0]?.originFileObj
+        if (!file) {
+          message.error('请选择插件文件')
+          return
+        }
+        const response = await pluginApi.uploadPlugin({ file })
+        if (response.success) {
+          message.success('插件上传成功')
+        } else {
+          message.error(response.message || '插件上传失败')
+          return
+        }
       } else {
-        message.error(response.message || '插件上传失败')
+        const value = values[uploadMethod]
+        if (!value || (typeof value === 'string' && !value.trim())) {
+          message.error(`请输入${uploadMethod === 'path' ? '插件文件路径' : 'Base64 编码的插件数据'}`)
+          return
+        }
+        const request: PluginUploadRequest = {
+          [uploadMethod]: value.trim(),
+        }
+        const response = await pluginApi.uploadPlugin(request)
+        if (response.success) {
+          message.success('插件上传成功')
+        } else {
+          message.error(response.message || '插件上传失败')
+          return
+        }
       }
+
+      form.resetFields()
+      setFileList([])
+      onCancel()
+      onSuccess()
     } catch (error: any) {
       message.error(error.response?.data?.message || '插件上传失败')
     } finally {
