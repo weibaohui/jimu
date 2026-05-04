@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Spin, Alert } from 'antd'
 import { usePlugin } from '../../hooks/usePlugin'
@@ -7,7 +7,7 @@ export function PluginLoader() {
   const location = useLocation()
   const [currentPlugin, setCurrentPlugin] = useState<string | null>(null)
   const [routeChecked, setRouteChecked] = useState(false)
-  const { component: PluginComponent, loading, error } = usePlugin(currentPlugin || '')
+  const { createComponent, loading, error } = usePlugin(currentPlugin || '')
 
   useEffect(() => {
     checkCurrentRoute()
@@ -31,6 +31,12 @@ export function PluginLoader() {
       setRouteChecked(true)
     }
   }
+
+  // 在渲染时调用 createComponent 创建组件，确保在正确的 React 上下文中
+  const PluginComponent = useMemo(() => {
+    if (!createComponent) return null
+    return createComponent()
+  }, [createComponent])
 
   // 还没检查完路由
   if (!routeChecked) {

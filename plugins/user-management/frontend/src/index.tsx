@@ -1,17 +1,7 @@
-// 工厂函数，接收 React 和 antd 作为参数
-export default function createUserManagement(React: any, antd: any, icons: any) {
+function createUserManagement(React: any, antd: any, icons: any) {
   const { useState, useEffect, Fragment } = React
   const { Table, Button, Modal, Form, Input, Select, message } = antd
   const { PlusOutlined, EditOutlined, DeleteOutlined } = icons
-
-  interface User {
-    id: number
-    name: string
-    email: string
-    role: string
-    created_at: string
-    updated_at: string
-  }
 
   function UserManagement() {
     const [users, setUsers] = useState([])
@@ -44,18 +34,18 @@ export default function createUserManagement(React: any, antd: any, icons: any) 
       form.resetFields()
     }
 
-    const handleEdit = (user: User) => {
+    const handleEdit = (user: any) => {
       setEditingUser(user)
       setModalVisible(true)
       form.setFieldsValue(user)
     }
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
       try {
         await fetch(`/api/plugins/user-management/users/${id}`, {
           method: 'DELETE',
         })
-        setUsers(prev => prev.filter(u => u.id !== id))
+        setUsers(prev => prev.filter((u: any) => u.id !== id))
         message.success('删除成功')
       } catch (error) {
         message.error('删除失败')
@@ -80,7 +70,7 @@ export default function createUserManagement(React: any, antd: any, icons: any) 
         if (response.ok) {
           const data = await response.json()
           if (editingUser) {
-            setUsers(prev => prev.map(u => (u.id === data.id ? data : u)))
+            setUsers(prev => prev.map((u: any) => (u.id === data.id ? data : u)))
             message.success('更新成功')
           } else {
             setUsers(prev => [...prev, data])
@@ -99,27 +89,10 @@ export default function createUserManagement(React: any, antd: any, icons: any) 
     }
 
     const columns = [
-      {
-        title: 'ID',
-        dataIndex: 'id',
-        key: 'id',
-        width: 80,
-      },
-      {
-        title: '姓名',
-        dataIndex: 'name',
-        key: 'name',
-      },
-      {
-        title: '邮箱',
-        dataIndex: 'email',
-        key: 'email',
-      },
-      {
-        title: '角色',
-        dataIndex: 'role',
-        key: 'role',
-      },
+      { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+      { title: '姓名', dataIndex: 'name', key: 'name' },
+      { title: '邮箱', dataIndex: 'email', key: 'email' },
+      { title: '角色', dataIndex: 'role', key: 'role' },
       {
         title: '创建时间',
         dataIndex: 'created_at',
@@ -130,21 +103,12 @@ export default function createUserManagement(React: any, antd: any, icons: any) 
         title: '操作',
         key: 'action',
         width: 180,
-        render: (_: any, record: User) => (
+        render: (_: any, record: any) => (
           <Fragment>
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            >
+            <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
               编辑
             </Button>
-            <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.id)}
-            >
+            <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
               删除
             </Button>
           </Fragment>
@@ -160,13 +124,7 @@ export default function createUserManagement(React: any, antd: any, icons: any) 
           </Button>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={users}
-          rowKey="id"
-          loading={loading}
-          bordered
-        />
+        <Table columns={columns} dataSource={users} rowKey="id" loading={loading} bordered />
 
         <Modal
           title={editingUser ? '编辑用户' : '新建用户'}
@@ -215,4 +173,9 @@ export default function createUserManagement(React: any, antd: any, icons: any) 
   }
 
   return UserManagement
+}
+
+// 注册到全局变量
+;(window as any).UserManagementPlugin = {
+  default: createUserManagement,
 }

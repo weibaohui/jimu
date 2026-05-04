@@ -2,13 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react({ jsxRuntime: 'classic' })],
   build: {
     outDir: 'assets',
     lib: {
       entry: 'src/index.tsx',
-      formats: ['es'],
-      fileName: 'main',
+      formats: ['iife'],
+      name: 'UserManagementPlugin',
+      fileName: () => 'main.js',
     },
   },
 })
