@@ -150,7 +150,5 @@ function createUserManagement(React: any, antd: any, icons: any) {
   return UserManagement
 }
 
-// 注册到全局变量
-;(window as any).UserManagementPlugin = {
-  default: createUserManagement,
-}
+// 挂载到 window
+;((window as any).plugins = (window as any).plugins || {})['user-management'] = createUserManagement

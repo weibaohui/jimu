@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Spin, Alert } from 'antd'
 import { usePlugin } from '../../hooks/usePlugin'
@@ -7,7 +7,7 @@ export function PluginLoader() {
   const location = useLocation()
   const [currentPlugin, setCurrentPlugin] = useState<string | null>(null)
   const [routeChecked, setRouteChecked] = useState(false)
-  const { createComponent, loading, error } = usePlugin(currentPlugin || '')
+  const { component: PluginComponent, loading, error } = usePlugin(currentPlugin || '')
 
   useEffect(() => {
     checkCurrentRoute()
@@ -32,15 +32,13 @@ export function PluginLoader() {
     }
   }
 
-  // 在渲染时调用 createComponent 创建组件，确保在正确的 React 上下文中
-  const PluginComponent = useMemo(() => {
-    if (!createComponent) return null
-    return createComponent()
-  }, [createComponent])
-
   // 还没检查完路由
   if (!routeChecked) {
-    return <Spin size="large" style={{ display: 'block', margin: '80px auto' }} />
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+        <Spin size="large" />
+      </div>
+    )
   }
 
   // 不是插件路由
@@ -50,7 +48,11 @@ export function PluginLoader() {
 
   // 正在加载插件组件
   if (loading) {
-    return <Spin size="large" style={{ display: 'block', margin: '80px auto' }} tip="加载插件中..." />
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+        <Spin size="large" />
+      </div>
+    )
   }
 
   // 加载失败
@@ -74,7 +76,7 @@ export function PluginLoader() {
   return (
     <Alert
       type="warning"
-      message="插件未导出有效组件"
+      message="插件未提供组件"
       description={`插件 "${currentPlugin}" 未提供前端界面`}
       showIcon
       style={{ margin: 24 }}
