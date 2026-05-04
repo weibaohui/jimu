@@ -1,5 +1,5 @@
 function createUserManagement(React: any, antd: any, icons: any) {
-  const { useState, useEffect, Fragment } = React
+  const { useState, useEffect, Fragment, createElement } = React
   const { Table, Button, Modal, Form, Input, Select, message } = antd
   const { PlusOutlined, EditOutlined, DeleteOutlined } = icons
 
@@ -45,7 +45,7 @@ function createUserManagement(React: any, antd: any, icons: any) {
         await fetch(`/api/plugins/user-management/users/${id}`, {
           method: 'DELETE',
         })
-        setUsers(prev => prev.filter((u: any) => u.id !== id))
+        setUsers((prev: any[]) => prev.filter((u: any) => u.id !== id))
         message.success('删除成功')
       } catch (error) {
         message.error('删除失败')
@@ -70,10 +70,10 @@ function createUserManagement(React: any, antd: any, icons: any) {
         if (response.ok) {
           const data = await response.json()
           if (editingUser) {
-            setUsers(prev => prev.map((u: any) => (u.id === data.id ? data : u)))
+            setUsers((prev: any[]) => prev.map((u: any) => (u.id === data.id ? data : u)))
             message.success('更新成功')
           } else {
-            setUsers(prev => [...prev, data])
+            setUsers((prev: any[]) => [...prev, data])
             message.success('创建成功')
           }
 
@@ -103,72 +103,47 @@ function createUserManagement(React: any, antd: any, icons: any) {
         title: '操作',
         key: 'action',
         width: 180,
-        render: (_: any, record: any) => (
-          <Fragment>
-            <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
-              删除
-            </Button>
-          </Fragment>
-        ),
+        render: (_: any, record: any) =>
+          createElement(Fragment, null,
+            createElement(Button, { type: 'link', icon: createElement(EditOutlined), onClick: () => handleEdit(record), key: 'edit' }, '编辑'),
+            createElement(Button, { type: 'link', danger: true, icon: createElement(DeleteOutlined), onClick: () => handleDelete(record.id), key: 'delete' }, '删除')
+          ),
       },
     ]
 
-    return (
-      <Fragment>
-        <div style={{ marginBottom: 16, textAlign: 'right' }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新建用户
-          </Button>
-        </div>
-
-        <Table columns={columns} dataSource={users} rowKey="id" loading={loading} bordered />
-
-        <Modal
-          title={editingUser ? '编辑用户' : '新建用户'}
-          open={modalVisible}
-          onOk={handleSubmit}
-          onCancel={() => {
-            setModalVisible(false)
-            form.resetFields()
-          }}
-          okText="确定"
-          cancelText="取消"
-        >
-          <Form form={form} layout="vertical">
-            <Form.Item
-              label="姓名"
-              name="name"
-              rules={[{ required: true, message: '请输入姓名' }]}
-            >
-              <Input placeholder="请输入姓名" />
-            </Form.Item>
-            <Form.Item
-              label="邮箱"
-              name="email"
-              rules={[
-                { required: true, message: '请输入邮箱' },
-                { type: 'email', message: '请输入有效的邮箱地址' },
-              ]}
-            >
-              <Input placeholder="请输入邮箱" />
-            </Form.Item>
-            <Form.Item
-              label="角色"
-              name="role"
-              rules={[{ required: true, message: '请选择角色' }]}
-            >
-              <Select placeholder="请选择角色">
-                <Select.Option value="管理员">管理员</Select.Option>
-                <Select.Option value="用户">用户</Select.Option>
-                <Select.Option value="访客">访客</Select.Option>
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </Fragment>
+    return createElement(Fragment, null,
+      createElement('div', { style: { marginBottom: 16, textAlign: 'right' }, key: 'header' },
+        createElement(Button, { type: 'primary', icon: createElement(PlusOutlined), onClick: handleCreate }, '新建用户')
+      ),
+      createElement(Table, { columns, dataSource: users, rowKey: 'id', loading, bordered: true, key: 'table' }),
+      createElement(Modal, {
+        title: editingUser ? '编辑用户' : '新建用户',
+        open: modalVisible,
+        onOk: handleSubmit,
+        onCancel: () => {
+          setModalVisible(false)
+          form.resetFields()
+        },
+        okText: '确定',
+        cancelText: '取消',
+        key: 'modal'
+      },
+        createElement(Form, { form, layout: 'vertical' },
+          createElement(Form.Item, { label: '姓名', name: 'name', rules: [{ required: true, message: '请输入姓名' }], key: 'name' },
+            createElement(Input, { placeholder: '请输入姓名' })
+          ),
+          createElement(Form.Item, { label: '邮箱', name: 'email', rules: [{ required: true, message: '请输入邮箱' }, { type: 'email', message: '请输入有效的邮箱地址' }], key: 'email' },
+            createElement(Input, { placeholder: '请输入邮箱' })
+          ),
+          createElement(Form.Item, { label: '角色', name: 'role', rules: [{ required: true, message: '请选择角色' }], key: 'role' },
+            createElement(Select, { placeholder: '请选择角色' },
+              createElement(Select.Option, { value: '管理员', key: 'admin' }, '管理员'),
+              createElement(Select.Option, { value: '用户', key: 'user' }, '用户'),
+              createElement(Select.Option, { value: '访客', key: 'guest' }, '访客')
+            )
+          )
+        )
+      )
     )
   }
 
