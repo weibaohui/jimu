@@ -7,19 +7,8 @@ export default defineConfig({
     outDir: 'assets',
     lib: {
       entry: 'src/index.tsx',
-      name: 'UserManagementPlugin',
       formats: ['es'],
       fileName: 'main',
-    },
-    rollupOptions: {
-      external: ['react', 'react-dom', 'antd'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          antd: 'antd',
-        },
-      },
     },
   },
 })

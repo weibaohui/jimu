@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Table, Button, Modal, Form, Input, Select, message } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 
 interface User {
   id: number
@@ -11,6 +10,8 @@ interface User {
   updated_at: string
 }
 
+// 从全局对象获取图标组件
+const { PlusOutlined, EditOutlined, DeleteOutlined } = (window as any).__ANT_DESIGN_ICONS__ || {}
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([])
@@ -133,7 +134,7 @@ export function UserManagement() {
         <div>
           <Button
             type="link"
-            icon={<EditOutlined />}
+            icon={EditOutlined ? <EditOutlined /> : undefined}
             onClick={() => handleEdit(record)}
           >
             编辑
@@ -141,7 +142,7 @@ export function UserManagement() {
           <Button
             type="link"
             danger
-            icon={<DeleteOutlined />}
+            icon={DeleteOutlined ? <DeleteOutlined /> : undefined}
             onClick={() => handleDelete(record.id)}
           >
             删除
@@ -154,7 +155,7 @@ export function UserManagement() {
   return (
     <div>
       <div style={{ marginBottom: 16, textAlign: 'right' }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+        <Button type="primary" icon={PlusOutlined ? <PlusOutlined /> : undefined} onClick={handleCreate}>
           新建用户
         </Button>
       </div>

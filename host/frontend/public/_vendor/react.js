@@ -1,4 +1,5 @@
-import _r from '/node_modules/.vite/deps/react.js'
+import * as _r from '/node_modules/.vite/deps/react.js'
+
 const {
   Children,
   Component,
@@ -74,3 +75,6 @@ export {
 }
 
 export default _r
+
+// 将 React 暴露为全局变量，供插件使用
+window.React = _r
