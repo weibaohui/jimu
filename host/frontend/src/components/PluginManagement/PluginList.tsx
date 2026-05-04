@@ -9,6 +9,7 @@ import {
 import { PluginStatus } from '../../types/plugin'
 import type { Plugin } from '../../types/plugin'
 import { pluginApi } from '../../services/pluginApi'
+import { useMenu } from '../../contexts/MenuContext'
 import { PluginStatusBadge } from './PluginStatusBadge'
 import { PluginControlButtons } from './PluginControlButtons'
 import { PluginUploadModal } from './PluginUploadModal'
@@ -24,6 +25,7 @@ export function PluginList({ onActionComplete }: PluginListProps) {
   const [uploadModalVisible, setUploadModalVisible] = useState(false)
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
   const [detailDrawerVisible, setDetailDrawerVisible] = useState(false)
+  const { refreshPluginMenus } = useMenu()
 
   const loadPlugins = async () => {
     try {
@@ -41,8 +43,9 @@ export function PluginList({ onActionComplete }: PluginListProps) {
     loadPlugins()
   }, [])
 
-  const handleActionComplete = () => {
+  const handleActionComplete = async () => {
     loadPlugins()
+    await refreshPluginMenus()
     onActionComplete?.()
   }
 
@@ -106,7 +109,6 @@ export function PluginList({ onActionComplete }: PluginListProps) {
     },
   ]
 
-  // 统计数据
   const stats = {
     total: plugins.length,
     running: plugins.filter((p) => p.status === PluginStatus.Running).length,
