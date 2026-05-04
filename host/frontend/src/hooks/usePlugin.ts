@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react'
+import * as React from 'react'
+import * as antd from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 
 export function usePlugin(pluginName: string) {
   const [component, setComponent] = useState<React.ComponentType | null>(null)
@@ -18,18 +21,16 @@ export function usePlugin(pluginName: string) {
         setLoading(true)
         setError(null)
 
-        // 去除 pluginName 可能带的前导斜杠
         const pluginPath = pluginName.replace(/^\//, '')
-        
-        // 使用动态 import 加载插件
         const module = await import(
           /* @vite-ignore */
           `/plugins/${pluginPath}/frontend/assets/main.js`
         )
 
-        // 如果导出的是工厂函数，调用它来获取组件
         if (typeof module.default === 'function') {
-          const Component = module.default()
+          // 传递 React、antd 和图标给工厂函数
+          const icons = { PlusOutlined, EditOutlined, DeleteOutlined }
+          const Component = module.default(React, antd, icons)
           if (typeof Component === 'function') {
             setComponent(Component)
           } else {

@@ -1,11 +1,17 @@
-// 导出工厂函数，确保在调用时 React 上下文已正确初始化
-export default function createUserManagement() {
-  const React = (window as any).React
-  const antd = (window as any).antd
-  const icons = (window as any).__ANT_DESIGN_ICONS__ || {}
-
+// 工厂函数，接收 React 和 antd 作为参数
+export default function createUserManagement(React: any, antd: any, icons: any) {
   const { useState, useEffect, Fragment } = React
   const { Table, Button, Modal, Form, Input, Select, message } = antd
+  const { PlusOutlined, EditOutlined, DeleteOutlined } = icons
+
+  interface User {
+    id: number
+    name: string
+    email: string
+    role: string
+    created_at: string
+    updated_at: string
+  }
 
   function UserManagement() {
     const [users, setUsers] = useState([])
@@ -38,13 +44,13 @@ export default function createUserManagement() {
       form.resetFields()
     }
 
-    const handleEdit = (user) => {
+    const handleEdit = (user: User) => {
       setEditingUser(user)
       setModalVisible(true)
       form.setFieldsValue(user)
     }
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id: number) => {
       try {
         await fetch(`/api/plugins/user-management/users/${id}`, {
           method: 'DELETE',
@@ -118,87 +124,93 @@ export default function createUserManagement() {
         title: '创建时间',
         dataIndex: 'created_at',
         key: 'created_at',
-        render: (date) => new Date(date).toLocaleString('zh-CN'),
+        render: (date: string) => new Date(date).toLocaleString('zh-CN'),
       },
       {
         title: '操作',
         key: 'action',
         width: 180,
-        render: (_, record) => (
-          React.createElement(Fragment, null,
-            React.createElement(Button, {
-              type: 'link',
-              icon: icons.EditOutlined ? React.createElement(icons.EditOutlined) : undefined,
-              onClick: () => handleEdit(record),
-            }, '编辑'),
-            React.createElement(Button, {
-              type: 'link',
-              danger: true,
-              icon: icons.DeleteOutlined ? React.createElement(icons.DeleteOutlined) : undefined,
-              onClick: () => handleDelete(record.id),
-            }, '删除')
-          )
+        render: (_: any, record: User) => (
+          <Fragment>
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              编辑
+            </Button>
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+            >
+              删除
+            </Button>
+          </Fragment>
         ),
       },
     ]
 
-    return React.createElement(Fragment, null,
-      React.createElement('div', { style: { marginBottom: 16, textAlign: 'right' } },
-        React.createElement(Button, {
-          type: 'primary',
-          icon: icons.PlusOutlined ? React.createElement(icons.PlusOutlined) : undefined,
-          onClick: handleCreate,
-        }, '新建用户')
-      ),
-      React.createElement(Table, {
-        columns,
-        dataSource: users,
-        rowKey: 'id',
-        loading,
-        bordered: true,
-      }),
-      React.createElement(Modal, {
-        title: editingUser ? '编辑用户' : '新建用户',
-        open: modalVisible,
-        onOk: handleSubmit,
-        onCancel: () => {
-          setModalVisible(false)
-          form.resetFields()
-        },
-        okText: '确定',
-        cancelText: '取消',
-      },
-        React.createElement(Form, { form, layout: 'vertical' },
-          React.createElement(Form.Item, {
-            label: '姓名',
-            name: 'name',
-            rules: [{ required: true, message: '请输入姓名' }],
-          },
-            React.createElement(Input, { placeholder: '请输入姓名' })
-          ),
-          React.createElement(Form.Item, {
-            label: '邮箱',
-            name: 'email',
-            rules: [
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
-            ],
-          },
-            React.createElement(Input, { placeholder: '请输入邮箱' })
-          ),
-          React.createElement(Form.Item, {
-            label: '角色',
-            name: 'role',
-            rules: [{ required: true, message: '请选择角色' }],
-          },
-            React.createElement(Select, { placeholder: '请选择角色' },
-              React.createElement(Select.Option, { value: '管理员' }, '管理员'),
-              React.createElement(Select.Option, { value: '用户' }, '用户'),
-              React.createElement(Select.Option, { value: '访客' }, '访客')
-            )
-          )
-        )
-      )
+    return (
+      <Fragment>
+        <div style={{ marginBottom: 16, textAlign: 'right' }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            新建用户
+          </Button>
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={users}
+          rowKey="id"
+          loading={loading}
+          bordered
+        />
+
+        <Modal
+          title={editingUser ? '编辑用户' : '新建用户'}
+          open={modalVisible}
+          onOk={handleSubmit}
+          onCancel={() => {
+            setModalVisible(false)
+            form.resetFields()
+          }}
+          okText="确定"
+          cancelText="取消"
+        >
+          <Form form={form} layout="vertical">
+            <Form.Item
+              label="姓名"
+              name="name"
+              rules={[{ required: true, message: '请输入姓名' }]}
+            >
+              <Input placeholder="请输入姓名" />
+            </Form.Item>
+            <Form.Item
+              label="邮箱"
+              name="email"
+              rules={[
+                { required: true, message: '请输入邮箱' },
+                { type: 'email', message: '请输入有效的邮箱地址' },
+              ]}
+            >
+              <Input placeholder="请输入邮箱" />
+            </Form.Item>
+            <Form.Item
+              label="角色"
+              name="role"
+              rules={[{ required: true, message: '请选择角色' }]}
+            >
+              <Select placeholder="请选择角色">
+                <Select.Option value="管理员">管理员</Select.Option>
+                <Select.Option value="用户">用户</Select.Option>
+                <Select.Option value="访客">访客</Select.Option>
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </Fragment>
     )
   }
 
