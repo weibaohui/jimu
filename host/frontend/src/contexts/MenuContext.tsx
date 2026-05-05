@@ -72,19 +72,33 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 
   const loadPluginMenus = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/plugins/menus')
-      const data = await response.json()
+      const pluginsResponse = await fetch('http://localhost:3000/api/plugins')
+      const pluginsData = await pluginsResponse.json()
+      const runningPlugins = pluginsData.plugins?.filter(
+        (plugin: any) => plugin.status.toLowerCase() === 'running'
+      ) || []
 
-      if (data.menus && Array.isArray(data.menus)) {
+      const menusResponse = await fetch('http://localhost:3000/api/plugins/menus')
+      const menusData = await menusResponse.json()
+
+      if (menusData.menus && Array.isArray(menusData.menus)) {
+        const runningPluginNames = runningPlugins.map((p: any) => p.name)
+
+        const filteredMenus = menusData.menus.filter((menu: any) => {
+          if (!menu || !menu.path) return false
+          
+          const pluginName = extractPluginNameFromPath(menu.path)
+          return runningPluginNames.includes(pluginName)
+        })
+
         const allItems: MenuItem[] = []
-        data.menus.forEach((pluginMenu: any) => {
-          if (pluginMenu) {
-            allItems.push(transformBackendMenu(pluginMenu))
-            if (pluginMenu.children && Array.isArray(pluginMenu.children)) {
-              pluginMenu.children.forEach((child: any) => {
-                allItems.push(transformBackendMenu(child))
-              })
-            }
+        filteredMenus.forEach((pluginMenu: any) => {
+          allItems.push(transformBackendMenu(pluginMenu))
+          
+          if (pluginMenu.children && Array.isArray(pluginMenu.children)) {
+            pluginMenu.children.forEach((child: any) => {
+              allItems.push(transformBackendMenu(child))
+            })
           }
         })
         
@@ -102,19 +116,33 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 
   const refreshPluginMenus = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/plugins/menus')
-      const data = await response.json()
+      const pluginsResponse = await fetch('http://localhost:3000/api/plugins')
+      const pluginsData = await pluginsResponse.json()
+      const runningPlugins = pluginsData.plugins?.filter(
+        (plugin: any) => plugin.status.toLowerCase() === 'running'
+      ) || []
 
-      if (data.menus && Array.isArray(data.menus)) {
+      const menusResponse = await fetch('http://localhost:3000/api/plugins/menus')
+      const menusData = await menusResponse.json()
+
+      if (menusData.menus && Array.isArray(menusData.menus)) {
+        const runningPluginNames = runningPlugins.map((p: any) => p.name)
+
+        const filteredMenus = menusData.menus.filter((menu: any) => {
+          if (!menu || !menu.path) return false
+          
+          const pluginName = extractPluginNameFromPath(menu.path)
+          return runningPluginNames.includes(pluginName)
+        })
+
         const allItems: MenuItem[] = []
-        data.menus.forEach((pluginMenu: any) => {
-          if (pluginMenu) {
-            allItems.push(transformBackendMenu(pluginMenu))
-            if (pluginMenu.children && Array.isArray(pluginMenu.children)) {
-              pluginMenu.children.forEach((child: any) => {
-                allItems.push(transformBackendMenu(child))
-              })
-            }
+        filteredMenus.forEach((pluginMenu: any) => {
+          allItems.push(transformBackendMenu(pluginMenu))
+          
+          if (pluginMenu.children && Array.isArray(pluginMenu.children)) {
+            pluginMenu.children.forEach((child: any) => {
+              allItems.push(transformBackendMenu(child))
+            })
           }
         })
 
@@ -128,6 +156,15 @@ export function MenuProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Failed to refresh plugin menus:', error)
     }
+  }
+
+  function extractPluginNameFromPath(path: string): string {
+    if (!path.startsWith('/')) return ''
+    const parts = path.split('/')
+    if (parts.length >= 2) {
+      return parts[1]
+    }
+    return ''
   }
 
   function transformBackendMenu(menu: any): MenuItem {
