@@ -171,6 +171,7 @@ build-dev-plugins:
 			dst="$$d/backend/plugin.$$ext"; \
 			if [ -f "$$src" ]; then \
 				cp "$$src" "$$dst"; \
+				codesign --force --sign - "$$dst" 2>/dev/null || true; \
 				echo "    ✅ $$dst"; \
 			else \
 				echo "    ⚠️  未找到 $$src"; \
