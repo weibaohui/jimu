@@ -9,4 +9,3 @@ pub mod sandbox;
 pub mod log_store;
 
 pub use manager::PluginManager;
-pub use loader::PluginState;

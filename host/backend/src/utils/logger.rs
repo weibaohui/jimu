@@ -298,7 +298,7 @@ impl PerformanceLogger {
 
 /// 初始化日志系统
 pub fn init_logger(level: &str) {
-    let log_level = match level.to_uppercase().as_str() {
+    let _log_level = match level.to_uppercase().as_str() {
         "TRACE" => LogLevel::Trace,
         "DEBUG" => LogLevel::Debug,
         "INFO" => LogLevel::Info,

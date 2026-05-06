@@ -44,8 +44,10 @@ async fn main() -> anyhow::Result<()> {
     // 创建插件管理器
     let plugin_manager = Arc::new(PluginManager::new(plugin_context));
 
-    // 加载插件
+    // 加载插件（目录形式，兼容旧版）
     plugin_manager.load_from_directory(&config.plugins_dir).await?;
+    // 加载插件（.plugin 文件形式）
+    plugin_manager.load_plugin_files(&config.plugins_dir).await?;
 
     // 构建路由
     let server_address = config.server_address.clone();

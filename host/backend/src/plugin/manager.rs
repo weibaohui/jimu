@@ -72,6 +72,50 @@ impl PluginManager {
         Ok(())
     }
 
+    /// 从目录加载所有 .plugin 文件
+    pub async fn load_plugin_files(&self, plugins_dir: &str) -> Result<()> {
+        let dir = PathBuf::from(plugins_dir);
+
+        if !dir.exists() {
+            return Ok(());
+        }
+
+        log::info!("扫描 .plugin 文件: {:?}", dir);
+
+        let entries = std::fs::read_dir(&dir)
+            .with_context(|| format!("无法读取插件目录: {:?}", dir))?;
+
+        for entry in entries {
+            let entry = entry?;
+            let path = entry.path();
+
+            if !path.is_file() {
+                continue;
+            }
+
+            if path.extension().map_or(true, |e| e != "plugin") {
+                continue;
+            }
+
+            let file_name = path.file_name().unwrap().to_string_lossy().to_string();
+            log::info!("发现插件包: {}", file_name);
+
+            match self.loader.load_from_package(&path).await {
+                Ok(loaded) => {
+                    let name = loaded.name.clone();
+                    let mut plugins = self.plugins.write().unwrap();
+                    plugins.insert(name.clone(), Arc::new(loaded));
+                    log::info!("插件 '{}' 加载成功 (from {})", name, file_name);
+                }
+                Err(e) => {
+                    log::error!("加载插件包 {} 失败: {:?}", file_name, e);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// 从 .plugin 文件加载插件
     pub async fn load_from_package(&self, package_path: &str) -> Result<()> {
         let path = PathBuf::from(package_path);

@@ -168,11 +168,19 @@ if [ "$FRONTEND_ONLY" = false ]; then
     esac
 
     # 查找编译后的动态库（Rust crate 名中的 - 会被转为 _）
-    LIB_FILE=$(find "target/release" -name "lib*.${LIB_EXT}" -type f 2>/dev/null | head -1)
+    # 先精确匹配 crate 名，避免误取 deps/ 下的 proc-macro dylib
+    CRATE_NAME=$(grep -m1 '^name[[:space:]]*=' Cargo.toml | sed 's/.*"\(.*\)".*/\1/' | tr '-' '_')
+    LIB_FILE="target/release/lib${CRATE_NAME}.${LIB_EXT}"
+    if [ ! -f "$LIB_FILE" ]; then
+        # 回退：在 target/release/（不含子目录）查找
+        LIB_FILE=$(find "target/release" -maxdepth 1 -name "lib*.${LIB_EXT}" -type f 2>/dev/null | head -1)
+    fi
 
     if [ -n "$LIB_FILE" ] && [ -f "$LIB_FILE" ]; then
         mkdir -p "../$BUILD_DIR/backend"
         cp "$LIB_FILE" "../$BUILD_DIR/backend/plugin.${LIB_EXT}"
+        # macOS 代码签名，避免 dlopen 时被 SIGKILL
+        codesign --force --sign - "../$BUILD_DIR/backend/plugin.${LIB_EXT}" 2>/dev/null || true
         print_info "后端编译完成: plugin.${LIB_EXT} (from $(basename "$LIB_FILE"))"
     else
         print_error "无法找到编译后的动态库"

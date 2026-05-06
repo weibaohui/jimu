@@ -6,6 +6,7 @@
 #
 #  开发:
 #    make dev       启动开发环境（Portless HTTPS）
+#                   自动编译插件 → dist/*.plugin → 后端从 dist/ 加载
 #                   前端: https://jimu-app.localhost
 #                   后端: https://jimu-api.localhost
 #
@@ -139,7 +140,7 @@ dev: build-dev-plugins
 	@echo "  ✅ 端口已清理"
 	@echo ""
 	@echo "[3/5] 启动后端 (0.0.0.0:3000)..."
-	@cd host/backend && export DATABASE_URL=sqlite:./host.db && export PLUGINS_DIR=../../plugins && export LOG_LEVEL=info && cargo run &
+	@cd host/backend && export DATABASE_URL=sqlite:./host.db && export PLUGINS_DIR=../../dist && export LOG_LEVEL=info && cargo run &
 	@sleep 8
 	@if curl -sf http://localhost:3000/health > /dev/null 2>&1; then \
 		echo "  ✅ 后端已启动"; \
