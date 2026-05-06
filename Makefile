@@ -151,31 +151,38 @@ dev: build-dev-plugins
 	@portless alias jimu-api localhost:3000 2>/dev/null || true
 	@cd host/frontend && portless --force jimu-app vite
 
-# ── 编译开发用插件动态库（不打包，仅编译 .so/.dylib） ──
+# ── 编译开发用插件（打包为 .plugin 并输出到 dist/） ──
 
 .PHONY: build-dev-plugins
 build-dev-plugins:
-	@echo "=== 编译插件后端动态库 ==="
+	@mkdir -p $(DIST_DIR)
+	@echo "=== 编译并打包插件 ==="
 	@for d in $(PLUGINS_DIR)/*/; do \
 		if [ -f "$$d/manifest.json" ]; then \
 			name=$$(cd "$$d" && grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' manifest.json | cut -d'"' -f4); \
-			echo "  编译: $$name ..."; \
-			cd "$$d/backend" && cargo build 2>/dev/null && cd - > /dev/null; \
+			version=$$(cd "$$d" && grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' manifest.json | cut -d'"' -f4); \
+			echo "  编译: $$name v$$version ..."; \
+			cd "$$d" && bash ../../$(BUILD_TOOL) -b > /dev/null && cd - > /dev/null; \
+			pkg="$$d/$$name-$$version.plugin"; \
+			if [ -f "$$pkg" ]; then \
+				mv "$$pkg" $(DIST_DIR)/; \
+				echo "    ✅ $(DIST_DIR)/$$name-$$version.plugin"; \
+			else \
+				echo "    ❌ 打包失败: $$name"; \
+			fi; \
 			os=$$(uname -s); \
 			case $$os in \
 				Linux) ext="so" ;; \
 				Darwin) ext="dylib" ;; \
 				*) ext="dll" ;; \
 			esac; \
-			src="$$d/backend/target/debug/lib$$(echo $$name | tr '-' '_').$$ext"; \
-			dst="$$d/backend/plugin.$$ext"; \
-			if [ -f "$$src" ]; then \
-				cp "$$src" "$$dst"; \
-				codesign --force --sign - "$$dst" 2>/dev/null || true; \
-				echo "    ✅ $$dst"; \
-			else \
-				echo "    ⚠️  未找到 $$src"; \
+			src=$$(find "$$d/backend/target/release" -maxdepth 1 -name "lib*.$$ext" -type f 2>/dev/null | head -1); \
+			if [ -n "$$src" ] && [ -f "$$src" ]; then \
+				cp "$$src" "$$d/backend/plugin.$$ext"; \
+				codesign --force --sign - "$$d/backend/plugin.$$ext" 2>/dev/null || true; \
 			fi; \
 		fi; \
 	done
 	@echo ""
+	@echo "产物:"
+	@ls -lh $(DIST_DIR)/ 2>/dev/null || echo "  (空)"
