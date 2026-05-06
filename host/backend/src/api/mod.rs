@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use anyhow::Result;
-use crate::plugin::{PluginManager, traits::*};
+use crate::plugin::{PluginManager, traits::*, loader::PluginState};
 
 /// 创建 API 路由
 pub async fn create_routes(
@@ -387,6 +387,10 @@ async fn reset_sandbox_stats(
 async fn list_menus(State(state): State<AppState>) -> Json<serde_json::Value> {
     let plugins = state.plugin_manager.get_all_plugins();
     let menus: Vec<Option<MenuConfig>> = plugins.iter()
+        .filter(|p| {
+            let s = p.state.read().unwrap().clone();
+            s == PluginState::Enabled || s == PluginState::Running
+        })
         .map(|p| p.plugin.get_menu())
         .collect();
 
@@ -401,6 +405,12 @@ async fn serve_frontend_asset(
     Path((name, path)): Path<(String, String)>,
 ) -> Result<Response, (StatusCode, String)> {
     if let Some(plugin) = state.plugin_manager.get_plugin(&name) {
+        let s = plugin.state.read().unwrap().clone();
+        if s != PluginState::Enabled && s != PluginState::Running {
+            return Err((StatusCode::SERVICE_UNAVAILABLE,
+                format!("Plugin '{}' is not active (current state: {:?})", name, s)));
+        }
+
         let asset_path = plugin.plugin_dir.join("frontend").join(&path);
 
         if asset_path.exists() {
@@ -431,6 +441,10 @@ async fn check_route(
 ) -> Json<serde_json::Value> {
     if let Some(path) = body.get("path").and_then(|p| p.as_str()) {
         for plugin in state.plugin_manager.get_all_plugins() {
+            let s = plugin.state.read().unwrap().clone();
+            if s != PluginState::Enabled && s != PluginState::Running {
+                continue;
+            }
             if let Some(menu) = plugin.plugin.get_menu() {
                 if path.starts_with(&menu.path) {
                     return Json(serde_json::json!({
@@ -455,6 +469,17 @@ async fn handle_plugin_request(
     body: String,
 ) -> Response {
     if let Some(plugin) = state.plugin_manager.get_plugin(&plugin_name) {
+        // 检查插件状态：只有 Enabled 或 Running 状态才提供服务
+        let plugin_state = plugin.state.read().unwrap().clone();
+        if plugin_state != PluginState::Enabled && plugin_state != PluginState::Running {
+            return Response::builder()
+                .status(StatusCode::SERVICE_UNAVAILABLE)
+                .body(axum::body::Body::from(
+                    serde_json::json!({"error": format!("Plugin is not active (current state: {:?})", plugin_state)}).to_string()
+                ))
+                .unwrap();
+        }
+
         let routes = plugin.plugin.get_routes();
 
         for route in routes {

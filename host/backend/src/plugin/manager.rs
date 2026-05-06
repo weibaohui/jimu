@@ -52,6 +52,12 @@ impl PluginManager {
                 continue;
             }
 
+            // 跳过没有 manifest.json 的非插件目录
+            if !path.join("manifest.json").exists() {
+                log::warn!("跳过非插件目录: {} (缺少 manifest.json)", plugin_name);
+                continue;
+            }
+
             match self.loader.load_from_directory(path.clone()).await {
                 Ok(loaded) => {
                     let mut plugins = self.plugins.write().unwrap();
@@ -127,6 +133,8 @@ impl PluginManager {
                 let ctx = self.loader.context.clone();
                 loaded.plugin.on_load(&ctx).await
                     .map_err(|e| anyhow::anyhow!("插件启用失败: {}", e))?;
+                loaded.plugin.on_enable().await
+                    .map_err(|e| anyhow::anyhow!("插件启用回调失败: {}", e))?;
                 *loaded.state.write().unwrap() = PluginState::Enabled;
                 log::info!("插件 '{}' 已启用", name);
                 Ok(())
@@ -149,6 +157,8 @@ impl PluginManager {
         if let Some(loaded) = loaded {
             let current_state = loaded.state.read().unwrap().clone();
             if current_state == PluginState::Enabled || current_state == PluginState::Running {
+                loaded.plugin.on_disable().await
+                    .map_err(|e| anyhow::anyhow!("插件禁用回调失败: {}", e))?;
                 loaded.plugin.on_unload().await
                     .map_err(|e| anyhow::anyhow!("插件禁用失败: {}", e))?;
                 *loaded.state.write().unwrap() = PluginState::Disabled;

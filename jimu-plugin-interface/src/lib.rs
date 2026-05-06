@@ -58,6 +58,18 @@ pub trait Plugin: Send + Sync {
     /// 插件卸载时的回调
     async fn on_unload(&self) -> std::result::Result<(), Box<dyn Error + Send + Sync>>;
 
+    /// 插件启用时的回调（在 on_load 之后、状态变为 Enabled 之前调用）
+    /// 默认实现为空操作
+    async fn on_enable(&self) -> std::result::Result<(), Box<dyn Error + Send + Sync>> {
+        Ok(())
+    }
+
+    /// 插件禁用时的回调（在 on_unload 之前、状态变为 Disabled 之前调用）
+    /// 默认实现为空操作
+    async fn on_disable(&self) -> std::result::Result<(), Box<dyn Error + Send + Sync>> {
+        Ok(())
+    }
+
     /// 执行插件业务逻辑
     async fn execute(&self, input: &str)
         -> std::result::Result<String, Box<dyn Error + Send + Sync>>;

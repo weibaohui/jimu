@@ -90,6 +90,16 @@ impl Plugin for UserManagementPlugin {
         Ok(())
     }
 
+    async fn on_enable(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        log::info!("用户管理插件已启用，开始服务请求");
+        Ok(())
+    }
+
+    async fn on_disable(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        log::info!("用户管理插件已禁用，停止服务请求");
+        Ok(())
+    }
+
     async fn execute(&self, input: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
         Ok(format!("用户管理插件处理: {}", input))
     }
